@@ -24,6 +24,8 @@ type UrlPattern struct {
 
 type Repo struct {
 	Url               string         `json:"url"`
+	GitlabUrl		  string 		 `json:"gitlab-url"`
+	GitlabToken		  string 		 `json:"gitlab-token"`
 	MsBetweenPolls    int            `json:"ms-between-poll"`
 	Vcs               string         `json:"vcs"`
 	VcsConfigMessage  *SecretMessage `json:"vcs-config"`

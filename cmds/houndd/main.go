@@ -15,6 +15,7 @@ import (
 	"github.com/etsy/hound/config"
 	"github.com/etsy/hound/searcher"
 	"github.com/etsy/hound/ui"
+	"github.com/xanzy/go-gitlab"
 )
 
 const gracefulShutdownSignal = syscall.SIGTERM
@@ -29,6 +30,38 @@ func makeSearchers(cfg *config.Config) (map[string]*searcher.Searcher, bool, err
 	if _, err := os.Stat(cfg.DbPath); err != nil {
 		if err := os.MkdirAll(cfg.DbPath, os.ModePerm); err != nil {
 			return nil, false, err
+		}
+	}
+
+	//Checking for gitlab configs
+	for name, repo := range cfg.Repos {
+		if repo.GitlabUrl != "" {
+			git := gitlab.NewClient(nil, repo.GitlabToken)
+
+			if repo.GitlabUrl != "" {
+				git.SetBaseURL(repo.GitlabUrl)
+			}
+			opt := &gitlab.ListProjectsOptions{
+				PerPage: gitlab.String("500"),
+			}
+
+			projects, _, err := git.Projects.ListProjects(opt)
+
+			if err != nil {
+				log.Print(err)
+				continue
+			}
+
+			for _, pr := range projects {
+
+				repoName := pr.Name
+				newRepo := *repo
+				newRepo.Url = pr.SSHURLToRepo
+				cfg.Repos[repoName] = &newRepo
+			}
+
+			//removing main gitlab config
+			delete(cfg.Repos, name)
 		}
 	}
 
