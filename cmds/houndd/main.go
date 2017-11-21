@@ -42,7 +42,7 @@ func makeSearchers(cfg *config.Config) (map[string]*searcher.Searcher, bool, err
 				git.SetBaseURL(repo.GitlabUrl)
 			}
 			opt := &gitlab.ListProjectsOptions{
-				PerPage: gitlab.String("500"),
+				ListOptions: gitlab.ListOptions{PerPage: 500},
 			}
 
 			projects, _, err := git.Projects.ListProjects(opt)
