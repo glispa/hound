@@ -35,6 +35,7 @@ func makeSearchers(cfg *config.Config) (map[string]*searcher.Searcher, bool, err
 
 	//Checking for gitlab configs
 	for name, repo := range cfg.Repos {
+
 		if repo.GitlabUrl != "" {
 			git := gitlab.NewClient(nil, repo.GitlabToken)
 
@@ -56,7 +57,7 @@ func makeSearchers(cfg *config.Config) (map[string]*searcher.Searcher, bool, err
 
 				repoName := pr.Name
 				newRepo := *repo
-				newRepo.Url = pr.SSHURLToRepo
+				newRepo.Url = strings.Replace(pr.HTTPURLToRepo, "https://", "https://" + repo.GitlabUser + ":" + repo.GitlabToken + "@", 1)
 				cfg.Repos[repoName] = &newRepo
 			}
 
