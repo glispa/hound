@@ -33,6 +33,8 @@ func makeSearchers(cfg *config.Config) (map[string]*searcher.Searcher, bool, err
 		}
 	}
 
+	var gitlabRepos = make(map[string]*config.Repo)
+
 	//Checking for gitlab configs
 	for name, repo := range cfg.Repos {
 
@@ -42,27 +44,44 @@ func makeSearchers(cfg *config.Config) (map[string]*searcher.Searcher, bool, err
 			if repo.GitlabUrl != "" {
 				git.SetBaseURL(repo.GitlabUrl)
 			}
-			opt := &gitlab.ListProjectsOptions{
-				ListOptions: gitlab.ListOptions{PerPage: 500},
+
+			n := 1
+			var allProjects []*gitlab.Project
+
+			for {
+				opt := &gitlab.ListProjectsOptions{
+					ListOptions: gitlab.ListOptions{Page: n, PerPage: 100},
+				}
+
+				projects, _, err := git.Projects.ListProjects(opt)
+
+				if err != nil {
+					log.Print(err)
+					continue
+				}
+
+				if len(projects) == 0 {
+					break
+				}
+
+				allProjects = append(allProjects, projects...)
+				n++
 			}
 
-			projects, _, err := git.Projects.ListProjects(opt)
-
-			if err != nil {
-				log.Print(err)
-				continue
-			}
-
-			for _, pr := range projects {
+			for _, pr := range allProjects {
 
 				repoName := pr.Name
 				newRepo := *repo
 				newRepo.Url = strings.Replace(pr.HTTPURLToRepo, "https://", "https://" + repo.GitlabUser + ":" + repo.GitlabToken + "@", 1)
-				cfg.Repos[repoName] = &newRepo
+				gitlabRepos[repoName] = &newRepo
 			}
 
 			//removing main gitlab config
 			delete(cfg.Repos, name)
+		}
+
+		for k, v := range gitlabRepos {
+			cfg.Repos[k] = v
 		}
 	}
 
